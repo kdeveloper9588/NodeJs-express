@@ -9,7 +9,8 @@ const compression = require('express-compression')
 const sanitizeHtml = require('sanitize-html');
 
 
-app.use(bodyParser.urlencoded({ extended: false }))//form
+app.use(express.static('public'));
+app.use(bodyParser.urlencoded({ extended: false }));//form
 //app.use(bodyParser.json()) json
 app.use(compression());
 //app.get('/', (req, res) => res.send('hello world!'))
@@ -26,7 +27,9 @@ app.get('/', function (req, res) {
   const description = 'Hello, Node.js';
   const list = template.list(req.list);
   const html = template.HTML(title, list,
-    `<h2>${title}</h2>${description}`,
+    `<h2>${title}</h2>${description}
+    <img src="/images/hello.jpg" style = "width:400px; display:block; margin-top:10px;">
+    `,
     `<a href="/create">create</a>`
   );
   res.send(html);
