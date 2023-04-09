@@ -36,9 +36,12 @@ app.get('/', function (req, res) {
 });
 
 
-app.get('/page/:pageId', function (req, res) {
-    const filteredId = path.parse(req.params.pageId).base;
-    fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
+app.get('/page/:pageId', function (req, res, next) {
+  const filteredId = path.parse(req.params.pageId).base;
+  fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
+  if(err){
+    next(err);
+  }else{
       const title = req.params.pageId;
       const sanitizedTitle = sanitizeHtml(title);
       const sanitizedDescription = sanitizeHtml(description, {
@@ -55,7 +58,8 @@ app.get('/page/:pageId', function (req, res) {
           </form>`
       );
       res.send(html);
-    });
+    }
+  });
 });
 
 app.get('/create', function (req, res) {
@@ -143,6 +147,15 @@ app.post('/delete_process', function(req, res){
   fs.unlink(`data/${filteredId}`, function(error){
   res.redirect('/');
   });
+});
+
+
+app.use(function(req, res, next){
+  res.status(404).send('Sory cant find that!');
+});
+
+app.use(function(err, req, res, next){
+  res.status(500).send('Somthing broke!');
 });
 
 app.listen(7000 , () => console.log('sucsess 7000port'));
