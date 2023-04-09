@@ -1,165 +1,35 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-const fs = require('fs');
-const template = require('./lib/template.js');
-const path = require('path');
-const qs = require('querystring');
-const bodyParser = require('body-parser');
-const compression = require('express-compression')
-const sanitizeHtml = require('sanitize-html');
+const fs = require("fs");
+const bodyParser = require("body-parser");
+const compression = require("express-compression");
+const indexRouter = require("./routes/index");
+const topicRouter = require("./routes/topic");
 
-
-app.use(express.static('public'));
-app.use(bodyParser.urlencoded({ extended: false }));//form
+app.use(express.static("public"));
+app.use(bodyParser.urlencoded({ extended: false })); //form
 //app.use(bodyParser.json()) json
 app.use(compression());
 //app.get('/', (req, res) => res.send('hello world!'))
-
-app.get('*', function(req, res, next) {
-  fs.readdir('./data', function(error, filelist){
+app.get("*", function (req, res, next) {
+  fs.readdir("./data", function (error, filelist) {
     req.list = filelist;
     next();
   });
 });
 
-app.get('/', function (req, res) {
-  const title = 'Welcome';
-  const description = 'Hello, Node.js';
-  const list = template.list(req.list);
-  const html = template.HTML(title, list,
-    `<h2>${title}</h2>${description}
-    <img src="/images/hello.jpg" style = "width:400px; display:block; margin-top:10px;">
-    `,
-    `<a href="/create">create</a>`
-  );
-  res.send(html);
+app.use("/", indexRouter);
+app.use("/topic", topicRouter);
+
+app.use(function (req, res, next) {
+  res.status(404).send("Sory cant find that!");
 });
 
-
-app.get('/page/:pageId', function (req, res, next) {
-  const filteredId = path.parse(req.params.pageId).base;
-  fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
-  if(err){
-    next(err);
-  }else{
-      const title = req.params.pageId;
-      const sanitizedTitle = sanitizeHtml(title);
-      const sanitizedDescription = sanitizeHtml(description, {
-        allowedTags:['h1']
-      });
-      const list = template.list(req.list);
-      const html = template.HTML(sanitizedTitle, list,
-        `<h2>${sanitizedTitle}</h2>${sanitizedDescription}`,
-        ` <a href="/create">create</a>
-          <a href="/update/${sanitizedTitle}">update</a>
-          <form action="/delete_process" method="post">
-            <input type="hidden" name="id" value="${sanitizedTitle}">
-            <input type="submit" value="delete">
-          </form>`
-      );
-      res.send(html);
-    }
-  });
+app.use(function (err, req, res, next) {
+  res.status(500).send("Somthing broke!");
 });
 
-app.get('/create', function (req, res) {
-    const title = 'WEB - create';
-    const list = template.list(req.list);
-    const html = template.HTML(title, list, `
-      <form action="/create_process" method="post">
-        <p><input type="text" name="title" placeholder="title"></p>
-        <p>
-          <textarea name="description" placeholder="description"></textarea>
-        </p>
-        <p>
-          <input type="submit">
-        </p>
-      </form>
-    `, '');
-    res.send(html);
-});
-
-app.post('/create_process', function(req, res){
-  /*  var body = '';
-      req.on('data', function(data){
-          body = body + data;
-      });
-      req.on('end', function(){
-          var post = qs.parse(body);
-          var title = post.title;
-          var description = post.description;
-          fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-            res.writeHead(302, {Location: `/?id=${title}`});
-            res.end();
-          });
-    });
-    */
-   //use bodyParser
-  var post = req.body;
-        var title = post.title;
-        var description = post.description;
-        fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-          res.writeHead(302, {Location: `/?id=${title}`});
-          res.end();
-        });
-});
-
-app.get('/update/:pageId', function (req, res) {
-    const filteredId = path.parse(req.params.pageId).base;
-    fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
-      const title = req.params.pageId;
-      const list = template.list(req.list);
-      const html = template.HTML(title, list,
-        `
-        <form action="/update_process" method="post">
-          <input type="hidden" name="id" value="${title}">
-          <p><input type="text" name="title" placeholder="title" value="${title}"></p>
-          <p>
-            <textarea name="description" placeholder="description">${description}</textarea>
-          </p>
-          <p>
-            <input type="submit">
-          </p>
-        </form>
-        `,
-        `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`
-      );
-      res.send(html);
-    });
-});
-
-app.post('/update_process', function(req, res){
-  var post = req.body;
-  var id = post.id;
-  var title = post.title;
-  var description = post.description;
-  fs.rename(`data/${id}`, `data/${title}`, function(error){
-    fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-      res.redirect(`/?id=${title}`);
-    })
-  });
-});
-
-app.post('/delete_process', function(req, res){
-  var post = req.body;
-  var id = post.id;
-  var filteredId = path.parse(id).base;
-  fs.unlink(`data/${filteredId}`, function(error){
-  res.redirect('/');
-  });
-});
-
-
-app.use(function(req, res, next){
-  res.status(404).send('Sory cant find that!');
-});
-
-app.use(function(err, req, res, next){
-  res.status(500).send('Somthing broke!');
-});
-
-app.listen(7000 , () => console.log('sucsess 7000port'));
-
+app.listen(7000, () => console.log("sucsess 7000port"));
 
 /*
 var http = require('http');
@@ -249,4 +119,3 @@ var app = http.createServer(function(request,response){
 });
 app.listen(3000);
 */
-
